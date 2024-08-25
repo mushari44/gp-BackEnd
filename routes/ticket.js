@@ -5,6 +5,9 @@ const createRouter = () => {
   const router = express.Router();
 
   // Route to fetch user details based on storedId
+  router.get("/", (req, res) => {
+    res.send("welcome");
+  });
   router.get("/user/:storedId", async (req, res) => {
     const { storedId } = req.params;
     const { userType } = req.query;
