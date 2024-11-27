@@ -1,5 +1,5 @@
 const express = require("express");
-const { studentUser, adviserUser, time } = require("../models/userModels");
+const { studentUser, adviserUser } = require("../models/userModels");
 
 const createRouter = () => {
   const router = express.Router();
@@ -181,10 +181,10 @@ const createRouter = () => {
           { new: true }
         ),
       ]);
-
       if (!student || !adviser) {
         return res.status(404).json({ message: "User not found" });
       }
+      console.log(adviserUser);
 
       const studentTicketId = student.tickets[student.tickets.length - 1]._id;
       const adviserTicketId = adviser.tickets[adviser.tickets.length - 1]._id;
@@ -221,7 +221,7 @@ const createRouter = () => {
   // Route to get available hours
   router.get("/getHours", async (req, res) => {
     try {
-      const timeData = await time.findOne({});
+      const timeData = await adviserUser.findOne({});
       if (!timeData) {
         return res.status(404).json({ message: "No time data found" });
       }
@@ -276,15 +276,15 @@ const createRouter = () => {
       adviserTicket.Duration = requestBody.newDuration;
       adviserTicket.confirmedDuration = true;
 
-      await Promise.all([student.save(), adviser.save()]);
-
       // console.log("REQ : ", requestBody);
+      console.log("adivsre : ", adviser);
 
       let hour = Number(requestBody.selectedHour);
       let minute = Number(requestBody.selectedMinute);
       let duration = Number(requestBody.newDuration);
+      console.log("req body : ", requestBody);
 
-      const timeDocument = await time.findOne();
+      const timeDocument = adviser.availableTimes;
 
       while (duration > 0) {
         // Calculate minutes to add in this hour
@@ -296,18 +296,18 @@ const createRouter = () => {
           if (hour === 10) {
             // Check if the minute already exists in timeDocument.ten
             const minuteExists = timeDocument.ten.some(
-              (entry) => entry.minutes === minuteStr
+              (entry) => entry === minuteStr
             );
             if (!minuteExists) {
-              timeDocument.ten.push({ minutes: minuteStr });
+              timeDocument.ten.push(minuteStr);
             }
           } else if (hour === 11) {
             // Check if the minute already exists in timeDocument.eleven
             const minuteExists = timeDocument.eleven.some(
-              (entry) => entry.minutes === minuteStr
+              (entry) => entry === minuteStr
             );
             if (!minuteExists) {
-              timeDocument.eleven.push({ minutes: minuteStr });
+              timeDocument.eleven.push(minuteStr);
             }
           }
         }
@@ -319,10 +319,12 @@ const createRouter = () => {
         hour += 1;
         minute = 0; // Reset minute to 0 at the start of a new hour
       }
+      adviser.availableTimes = timeDocument;
 
-      await timeDocument.save();
+      await Promise.all([student.save(), adviser.save()]);
+      console.log("time doc : ", timeDocument);
 
-      res.status(200).json({ studentTicket, adviserTicket });
+      res.status(200).json({ studentTicket, adviserTicket, adviser });
     } catch (error) {
       console.error("Error updating expected duration: ", error);
       res.status(500).json({ message: "Server error" });

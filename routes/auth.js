@@ -36,7 +36,13 @@ router.post("/register", async (req, res) => {
           .status(400)
           .json({ message: "This user already registered" });
       }
-      const newUser = new adviserUser({ id, password, username });
+      availableTimes = { ten: [], eleven: [] };
+      const newUser = new adviserUser({
+        id,
+        password,
+        username,
+        availableTimes: availableTimes,
+      });
 
       await newUser.save();
       res.status(201).json({ message: "User created successfully" });
