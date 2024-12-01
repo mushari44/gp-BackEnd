@@ -330,6 +330,68 @@ const createRouter = () => {
       res.status(500).json({ message: "Server error" });
     }
   });
+  router.post("/user/officeHours", async (req, res) => {
+    const { storedId, daysAndTimes } = req.body;
+
+    // Validate input: Ensure storedId is provided and daysAndTimes is a valid array
+    if (!storedId || !daysAndTimes || !Array.isArray(daysAndTimes)) {
+      return res.status(400).json({
+        message: "Bad request: Missing or invalid parameters",
+      });
+    }
+
+    try {
+      // Fetch the adviser by ID
+      const adviser = await adviserUser.findOne({ _id: storedId });
+      if (!adviser) {
+        return res.status(404).json({ message: "Adviser not found" });
+      }
+      console.log(daysAndTimes);
+
+      // Ensure each day object has the required structure before processing
+      const processedDays = daysAndTimes.map((day) => {
+        console.log("day : ", day);
+
+        if (!day || !day.day) {
+          throw new Error(
+            "Each day object must contain a 'day' field and an array of 'hours'."
+          );
+        }
+
+        const hoursArray = Array.isArray(day.hours) ? day.hours : [day.hours]; // Convert to array if it's an object
+
+        return {
+          ...day,
+          hours: hoursArray.map((hour) => {
+            if (!hour.start || !hour.end) {
+              throw new Error(
+                "Each hour must contain 'start' and 'end' fields."
+              );
+            }
+            return {
+              start: hour.start,
+              end: hour.end,
+              minutes: hour.minutes || [], // Ensure minutes is an array (default to empty)
+            };
+          }),
+        };
+      });
+
+      // Update the adviser's office hours (availableTimes field)
+      adviser.availableTimes = { Days: processedDays };
+
+      // Save changes to the database
+      await adviser.save();
+
+      res.status(200).json({
+        message: "Office hours updated successfully",
+        availableTimes: adviser.availableTimes,
+      });
+    } catch (error) {
+      console.error("Error updating office hours:", error);
+      res.status(500).json({ message: "Server error", error: error.message });
+    }
+  });
 
   router.put("/user/endSession", async (req, res) => {
     const { adviserId, studentId, ticketId, ReceiverTicketId, conclusion } =

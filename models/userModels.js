@@ -1,13 +1,23 @@
 const mongoose = require("mongoose");
 
-const TimeSchema = new mongoose.Schema({
-  ten: [],
-  eleven: [],
+const HourSchema = new mongoose.Schema({
+  date: { type: String },
+  day: { type: String, required: true },
+  hours: [
+    {
+      end: { type: String, required: true },
+      start: { type: String, required: true },
+      minutes: [{ type: Number }],
+    },
+  ],
+});
+const officeHourSchema = new mongoose.Schema({
+  Days: [HourSchema],
 });
 
 const messageSchema = new mongoose.Schema({
   sender: {
-    type: String, // Can be "student" or "adviser"
+    type: String,
   },
   senderName: {
     type: String,
@@ -50,7 +60,7 @@ const adviserSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   password: { type: String, required: true, default: "" },
   tickets: [TicketSchema],
-  availableTimes: { type: TimeSchema, default: {} }, // Add this line to include time schema
+  availableTimes: { type: officeHourSchema, default: {} },
 });
 const studentUser = mongoose.model("studentUser", studentSchema);
 const adviserUser = mongoose.model("adviserUser", adviserSchema);

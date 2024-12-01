@@ -36,12 +36,11 @@ router.post("/register", async (req, res) => {
           .status(400)
           .json({ message: "This user already registered" });
       }
-      availableTimes = { ten: [], eleven: [] };
       const newUser = new adviserUser({
         id,
         password,
         username,
-        availableTimes: availableTimes,
+        availableTimes: null,
       });
 
       await newUser.save();
