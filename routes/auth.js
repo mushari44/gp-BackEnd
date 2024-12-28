@@ -56,7 +56,7 @@ router.post("/register", async (req, res) => {
 // Login Route
 router.post("/login", async (req, res) => {
   const { id, password, userType } = req.body;
-  console.log("TYPE ,", userType);
+  // console.log("TYPE ,", userType);
   try {
     if (userType === "student") {
       const user = await studentUser.findOne({ id });
@@ -74,6 +74,17 @@ router.post("/login", async (req, res) => {
 
       const token = jwt.sign({ id: user._id }, "secret", { expiresIn: "1h" });
       res.json({ token, userId: user._id, user });
+    } else if (userType === "Admin") {
+      user = "1";
+      pass = "1";
+      if (id !== user || pass !== password) {
+        return res.status(400).json({ message: "Invalid credentials" });
+      } else {
+        const token = jwt.sign({ id: user._id }, "secret", {
+          expiresIn: "1h",
+        });
+        res.json({ token, userId: "674ee000bb3b5685bf0000a0", user });
+      }
     } else {
       const user = await adviserUser.findOne({ id });
       const existingUser = await AdviserId.findOne({ id });

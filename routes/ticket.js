@@ -1,9 +1,28 @@
 const express = require("express");
-const { studentUser, adviserUser } = require("../models/userModels");
+const { studentUser, adviserUser, adminUser } = require("../models/userModels");
+const { route } = require("./auth");
+const axios = require("axios");
 
 const createRouter = () => {
   const router = express.Router();
+  router.post("/chatbot", async (req, res) => {
+    try {
+      const { query } = req.body;
 
+      // Forward the request to the Flask server
+      const flaskResponse = await axios.post(
+        "http://127.0.0.1:5000/api/chatbot", // Flask server address
+        { query } // Pass the user message to Flask
+      );
+      console.log("FLASK RESonpe ", flaskResponse);
+
+      // Send the Flask response back to the client
+      res.json(flaskResponse.data);
+    } catch (error) {
+      console.error("Error communicating with Flask server:", error.message);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
   // Route to fetch user details based on storedId
   router.get("/", (req, res) => {
     res.send("welcome");
@@ -217,6 +236,17 @@ const createRouter = () => {
       res.status(500).json({ message: "Server error" });
     }
   });
+  router.get("/studentsData", async (req, res) => {
+    try {
+      const students = await studentUser.find({});
+      console.log("STUDENTS DATA ! Done ", students);
+
+      res.status(200).json(students);
+    } catch (error) {
+      console.error("Error fetching students data: ", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
 
   // Route to get available hours
   router.get("/getHours", async (req, res) => {
@@ -394,8 +424,14 @@ const createRouter = () => {
   });
 
   router.put("/user/endSession", async (req, res) => {
-    const { adviserId, studentId, ticketId, ReceiverTicketId, conclusion } =
-      req.body;
+    const {
+      adviserId,
+      studentId,
+      ticketId,
+      ReceiverTicketId,
+      conclusion,
+      accepted,
+    } = req.body;
     try {
       const [student, adviser] = await Promise.all([
         studentUser.findOne({
@@ -415,6 +451,8 @@ const createRouter = () => {
       const adviserTicket = adviser.tickets.id(ticketId);
       studentTicket.conclusion = conclusion;
       adviserTicket.conclusion = conclusion;
+      studentTicket.accepted = accepted;
+      adviserTicket.accepted = accepted;
       await Promise.all([student.save(), adviser.save()]);
 
       res.status(200).json(conclusion);
@@ -422,6 +460,116 @@ const createRouter = () => {
       console.log("Error ending session : ", error);
     }
   });
+  router.put("/user/accept", async (req, res) => {
+    const { adviserId, studentId, ticketId, ReceiverTicketId } = req.body;
+    try {
+      const [student, adviser] = await Promise.all([
+        studentUser.findOne({
+          _id: studentId,
+          "tickets._id": ReceiverTicketId,
+        }),
+        adviserUser.findOne({
+          _id: adviserId,
+          "tickets._id": ticketId,
+        }),
+      ]);
+      if (!student || !adviser) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      const studentTicket = student.tickets.id(ReceiverTicketId);
+      const adviserTicket = adviser.tickets.id(ticketId);
+      studentTicket.accepted = true;
+      adviserTicket.accepted = true;
+      await Promise.all([student.save(), adviser.save()]);
+      res.status(200).json(conclusion);
+    } catch (error) {
+      console.log("Error Accepting session : ", error);
+    }
+  });
+  router.put("/user/supervisor", async (req, res) => {
+    try {
+      const assignedSupervisors = req.body;
+      console.log("? ", assignedSupervisors);
+
+      // Validate input
+      if (!assignedSupervisors || !Array.isArray(assignedSupervisors)) {
+        return res.status(400).json({ message: "Invalid input format." });
+      }
+
+      // Update each supervisor and student
+      for (const { adviser, students } of assignedSupervisors) {
+        // Update adviser record
+        const adviserRecord = await adviserUser.findOne({ username: adviser });
+        if (!adviserRecord) {
+          return res
+            .status(404)
+            .json({ message: `Adviser ${adviser} not found.` });
+        }
+
+        // Add students to adviser
+        adviserRecord.students = [
+          ...new Set([...adviserRecord.students, ...students]),
+        ];
+        await adviserRecord.save();
+
+        // Update each student record
+        for (const student of students) {
+          const studentRecord = await studentUser.findOne({
+            username: student,
+          });
+          if (!studentRecord) {
+            return res
+              .status(404)
+              .json({ message: `Student ${student} not found.` });
+          }
+
+          studentRecord.supervisor = adviser;
+          await studentRecord.save();
+        }
+      }
+
+      // Update Admin record
+      const adminRecord = await adminUser.findOne();
+      console.log("admin : ", adminRecord);
+
+      if (adminRecord) {
+        adminRecord.assignedSupervisors = assignedSupervisors;
+        adminRecord.freeStudents = adminRecord.freeStudents.filter(
+          (student) =>
+            !assignedSupervisors.some((entry) =>
+              entry.students.includes(student)
+            )
+        );
+        adminRecord.freeSupervisors = adminRecord.freeSupervisors.filter(
+          (supervisor) =>
+            !assignedSupervisors.some((entry) => entry.adviser === supervisor)
+        );
+        await adminRecord.save();
+      }
+
+      res.status(200).json({ message: "Supervisors assigned successfully." });
+    } catch (error) {
+      console.error("Error assigning supervisors:", error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  });
+  router.get("/user/free", async (req, res) => {
+    try {
+      const adminRecord = await adminUser.findOne();
+      if (!adminRecord) {
+        return res.status(404).json({ message: "Admin record not found." });
+      }
+
+      res.status(200).json({
+        freeStudents: adminRecord.freeStudents,
+        freeSupervisors: adminRecord.freeSupervisors,
+      });
+    } catch (error) {
+      console.error("Error fetching free lists:", error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  });
+
   return router;
 };
 

@@ -5,18 +5,38 @@ const http = require("http");
 const socketIo = require("socket.io");
 const app = express();
 const server = http.createServer(app);
+app.use(cors());
+app.use(express.json());
 const io = socketIo(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
-app.use(cors());
-app.use(express.json());
+
+// app.post("/api/chatbot", async (req, res) => {
+//   try {
+//     const { message } = req.body;
+
+//     // Forward the request to the Flask server
+//     const flaskResponse = await axios.post(
+//       "http://127.0.0.1:5000/api/chatbot",
+//       {
+//         message,
+//       }
+//     );
+
+//     // Send the Flask response back to the client
+//     res.json(flaskResponse.data);
+//   } catch (error) {
+//     console.error("Error communicating with Flask server:", error.message);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 const MONGO_DB_URL =
-  process.env.MONGO_DB_URL ||
-  "mongodb+srv://musharizh56:admin@cluster0.clvs4os.mongodb.net/GraduationProject";
+  process.env.MONGO_DB_URL || "mongodb://127.0.0.1:27017/GraduationProject";
+// "mongodb+srv://musharizh56:admin@cluster0.clvs4os.mongodb.net/GraduationProject";
 mongoose
   .connect(MONGO_DB_URL)
   .then(() => console.log("Connected to MongoDB"))
@@ -54,13 +74,16 @@ io.on("connection", (socket) => {
     //   `User ${socket.id} left ticket rooms: ${studentTicketId}, ${adviserTicketId}`
     // );
   });
+  socket.on("updateTicket", (type, newData) => {
+    console.log("update ticket type : ", type, " new data : ", newData);
 
-  // Handle new messages
-  socket.on("newMessage", (message) => {
-    // console.log("New message sent:", message);
-    io.to(message.studentTicketId).emit("newMessage", message.newMessage);
-    io.to(message.adviserTicketId).emit("newMessage", message.newMessage);
+    io.emit("updateTicket", newData, type);
   });
+  // Handle new messages
+  // socket.on("newMessage", (message, type) => {
+  //   console.log("New message sent:", message, " Type : ", type);
+  //   io.emit("newMessage", message.newMessage);
+  // });
 
   // Handle ticket creation
   socket.on("ticketCreated", (ticketDetails) => {
@@ -74,6 +97,8 @@ io.on("connection", (socket) => {
     console.log("Session ended with conclusion:", sessionDetails);
 
     // Emit the sessionEnded event to both the student and adviser rooms
+    // io.emit("sessionEnded", sessionDetails);
+
     io.to(sessionDetails.adviserTicketId).emit("sessionEnded", sessionDetails);
     io.to(sessionDetails.studentTicketId).emit("sessionEnded", sessionDetails);
   });
