@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot Testing</title>
+  </head>
+  <body>
+    <h1>University Advising Chatbot</h1>
+    <form id="chat-form">
+      <input
+        id="user-input"
+        type="text"
+        placeholder="Ask me about advisors..."
+        style="width: 300px; padding: 10px; margin: 10px"
+      />
+      <button type="submit" style="padding: 10px 20px">Send</button>
+    </form>
+    <div id="chat-response" style="margin-top: 20px"></div>
+    <script>
+      document
+        .getElementById("chat-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const userInput = document.getElementById("user-input").value;
+          const responseDiv = document.getElementById("chat-response");
+
+          try {
+            const response = await fetch("/api/chatbot", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ message: userInput }),
+            });
+            const data = await response.json();
+            responseDiv.innerHTML = `<p><b>Chatbot:</b> ${data.reply}</p>`;
+          } catch (error) {
+            responseDiv.innerHTML = "<p>Sorry, something went wrong.</p>";
+          }
+        });
+    </script>
+  </body>
+</html>

@@ -2,6 +2,7 @@ const express = require("express");
 const { studentUser, adviserUser, adminUser } = require("../models/userModels");
 const { route } = require("./auth");
 const axios = require("axios");
+const { log } = require("console");
 
 const createRouter = () => {
   const router = express.Router();
@@ -360,8 +361,9 @@ const createRouter = () => {
       res.status(500).json({ message: "Server error" });
     }
   });
-  router.post("/user/officeHours", async (req, res) => {
+router.post("/user/officeHours", async (req, res) => {
     const { storedId, daysAndTimes } = req.body;
+    console.log("days and times : ", daysAndTimes);
 
     // Validate input: Ensure storedId is provided and daysAndTimes is a valid array
     if (!storedId || !daysAndTimes || !Array.isArray(daysAndTimes)) {
@@ -423,6 +425,7 @@ const createRouter = () => {
     }
   });
 
+
   router.put("/user/endSession", async (req, res) => {
     const {
       adviserId,
@@ -455,12 +458,12 @@ const createRouter = () => {
       adviserTicket.accepted = accepted;
       await Promise.all([student.save(), adviser.save()]);
 
-      res.status(200).json(conclusion);
+      res.status(200).json({ conclusion, accepted });
     } catch (error) {
       console.log("Error ending session : ", error);
     }
   });
-  router.put("/user/accept", async (req, res) => {
+  router.post("/user/accept", async (req, res) => {
     const { adviserId, studentId, ticketId, ReceiverTicketId } = req.body;
     try {
       const [student, adviser] = await Promise.all([
@@ -481,7 +484,7 @@ const createRouter = () => {
       studentTicket.accepted = true;
       adviserTicket.accepted = true;
       await Promise.all([student.save(), adviser.save()]);
-      res.status(200).json(conclusion);
+      res.status(200).json(adviserTicket.accepted);
     } catch (error) {
       console.log("Error Accepting session : ", error);
     }

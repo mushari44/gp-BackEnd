@@ -1,0 +1,151 @@
+{
+    "advisors": [
+        {
+            "name": "Dr. Mostafa Ibrahim",
+            "office_hours": "Sunday to Wednesday, 10 AM to 2 PM",
+            "office_location": "Building 2089, Room 213",
+            "teaches": [
+                "Computer Architecture CS228",
+                "Logic Design CS120",
+                "Discrete Structures CS114"
+            ]
+        },
+        {
+            "name": "Dr. Mohammed Aljammaz",
+            "office_hours": "Monday and Thursday, 12:20 PM to 2 PM",
+            "office_location": "Building 3, Room 230",
+            "teaches": [
+                "Software Security CS442",
+                "Computer Networks CS330"
+            ]
+        }
+    ],
+    "students": [
+        {
+            "name": "Abdullah Alhagbani",
+            "status": "Soon-to-be graduate in Computer Science",
+            "contact": {
+                "location": "Riyadh, Saudi Arabia",
+                "phone": "+966(54-232-1333)",
+                "email": "Abdullah.Alhagbani10@gmail.com"
+            },
+            "linkedin": "https://www.linkedin.com/in/abdullah-alhagbani-b9240b23b/",
+            "gpa": 4.17,
+            "skills": [
+                "Proficient in C++, SQL, and JavaScript",
+                "Database management and optimization",
+                "Frontend development using HTML, CSS, JS",
+                "Project management and problem-solving"
+            ],
+            "achievements": [
+                "Led Enjaz Club for two years, hosting 12 impactful activities",
+                "Developed CCIS Guide Map and Academic Advising System (in progress)"
+            ],
+            "certifications": [
+                "Penetration Testing Student (eJPT V2), 2024",
+                "Basics of Data Analysis and Science, 2022",
+                "Competitive Programming Training, 2022"
+            ]
+        },
+        {
+            "name": "Mushari Alothman",
+            "status": "Computer Science student with experience in Web development",
+            "contact": {
+                "location": "Riyadh, Saudi Arabia",
+                "phone": "0567614044",
+                "email": "musharialothman44@gmail.com"
+            },
+            "github": "https://github.com/mushari44",
+            "linkedin": "https://www.linkedin.com/in/Mushari-Alothman",
+            "skills": {
+                "client_side": [
+                    "JavaScript",
+                    "CSS",
+                    "HTML",
+                    "Java",
+                    "React",
+                    "Python",
+                    "Tailwind CSS"
+                ],
+                "server_side": [
+                    "MongoDB",
+                    "MySQL",
+                    "Express.js",
+                    "Node.js",
+                    "Socket.IO"
+                ],
+                "development": [
+                    "Git",
+                    "GitHub",
+                    "OOP",
+                    "Debugging"
+                ]
+            },
+            "achievements": [
+                "Vice Leader of Competitive Programming Team in Enjaz IMSIU",
+                "Solved more than 400 problems in competitive programming",
+                "Ranked 7th on 'CoderHub', an Arab platform for programming challenges",
+                "Achieved 3rd place in IMSIU programming hackathon (prize over 20k SAR)"
+            ],
+            "projects": [
+                "Academic Advising System (Graduation project in progress)",
+                "Full-stack online store with React.js, Node.js, Express.js, and MongoDB",
+                "Robot game for improving understanding of class 'enum'"
+            ],
+            "languages": [
+                "Advanced English"
+            ]
+        }
+    ],
+    "department": {
+        "overview": {
+            "established": "1998",
+            "college_conversion": "2002",
+            "vision": "To equip students with cutting-edge knowledge and skills in computer science."
+        },
+        "mission": "Provide foundational and advanced knowledge in computer science.",
+        "objectives": [
+            "Develop skilled professionals to solve diverse computing challenges.",
+            "Prepare graduates for advanced research and studies.",
+            "Promote ethical and social responsibility among computer scientists."
+        ],
+        "curriculum": {
+            "total_credit_hours": 167,
+            "structure": [
+                {
+                    "type": "Institutional Requirements",
+                    "credit_hours": 26
+                },
+                {
+                    "type": "College and Program-Specific Courses",
+                    "details": "Foundational and advanced subjects."
+                },
+                {
+                    "type": "Capstone Projects and Internships",
+                    "details": "Hands-on experience."
+                }
+            ],
+            "key_courses": [
+                {
+                    "level": 1,
+                    "courses": [
+                        "CS104 - Discrete Structures",
+                        "CS140 - Computer Programming 1"
+                    ]
+                },
+                {
+                    "level": 2,
+                    "courses": [
+                        "CS106 - Digital Logic",
+                        "CS141 - Computer Programming 2"
+                    ]
+                }
+            ]
+        },
+        "contact": {
+            "male_students_email": "cs.office@imamu.edu.sa",
+            "female_students_email": "cs.office.f@imamu.edu.sa",
+            "website": "College of Computer and Information Sciences"
+        }
+    }
+}
