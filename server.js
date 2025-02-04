@@ -36,8 +36,8 @@ app.post("/api/chatbot", async (req, res) => {
 });
 
 const MONGO_DB_URL =
-  process.env.MONGO_DB_URL || "mongodb://127.0.0.1:27017/GraduationProject";
-// "mongodb+srv://musharizh56:admin@cluster0.clvs4os.mongodb.net/GraduationProject";
+  process.env.MONGO_DB_URL || "mongodb+srv://musharizh56:admin@cluster0.clvs4os.mongodb.net/GraduationProject";
+// ;
 mongoose
   .connect(MONGO_DB_URL)
   .then(() => console.log("Connected to MongoDB"))
