@@ -21,7 +21,7 @@ app.post("/api/chatbot", async (req, res) => {
     
     // Forward the request to the Flask server
     const flaskResponse = await axios.post(
-      "http://127.0.0.1:5000/api/chatbot",
+      "https://gp-backend-chatbot.onrender.com/api/chatbot",
       {
         message,
       }
