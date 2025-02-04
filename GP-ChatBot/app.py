@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 #from openai import OpenAI
 from custom_data import custom_data
 load_dotenv()  # Load the environment variables
-openai.api_key = os.getenv("OPENAI_API_KEY","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")
+openai.api_key ="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"
 from flask_cors import CORS
 
 app = Flask(__name__)
