@@ -14,25 +14,26 @@ const io = socketIo(server, {
   },
 });
 
-// app.post("/api/chatbot", async (req, res) => {
-//   try {
-//     const { message } = req.body;
+app.post("/api/chatbot", async (req, res) => {
+  try {
+    const { message } = req.body;
+    console.log(message);
+    
+    // Forward the request to the Flask server
+    const flaskResponse = await axios.post(
+      "http://127.0.0.1:5000/api/chatbot",
+      {
+        message,
+      }
+    );
 
-//     // Forward the request to the Flask server
-//     const flaskResponse = await axios.post(
-//       "http://127.0.0.1:5000/api/chatbot",
-//       {
-//         message,
-//       }
-//     );
-
-//     // Send the Flask response back to the client
-//     res.json(flaskResponse.data);
-//   } catch (error) {
-//     console.error("Error communicating with Flask server:", error.message);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
+    // Send the Flask response back to the client
+    res.json(flaskResponse.data);
+  } catch (error) {
+    console.error("Error communicating with Flask server:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 const MONGO_DB_URL =
   process.env.MONGO_DB_URL || "mongodb://127.0.0.1:27017/GraduationProject";
@@ -74,11 +75,16 @@ io.on("connection", (socket) => {
     //   `User ${socket.id} left ticket rooms: ${studentTicketId}, ${adviserTicketId}`
     // );
   });
-  socket.on("updateTicket", (type, newData) => {
-    console.log("update ticket type : ", type, " new data : ", newData);
+// In your server setup
+socket.on("updateTicket", ({ type, newData, studentTicketId, adviserTicketId }) => {
+  console.log("update ticket type : ", type, " new data : ", newData , " student ticket id : ", studentTicketId, " adviser ticket id : ", adviserTicketId);
 
-    io.emit("updateTicket", newData, type);
-  });
+  // Emit the update to ONLY the relevant rooms
+  // This ensures only the student and adviser in those rooms get the event
+  io.to(studentTicketId).emit("updateTicket", newData, type);
+  io.to(adviserTicketId).emit("updateTicket", newData, type);
+});
+
   // Handle new messages
   // socket.on("newMessage", (message, type) => {
   //   console.log("New message sent:", message, " Type : ", type);
@@ -104,16 +110,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("durationUpdated", (requestBody) => {
-    // console.log("new Duration: ", requestBody.data);
-
-    io.to(requestBody.data.adviserTicket._id).emit(
-      "durationUpdated",
-      requestBody.data.adviserTicket
-    );
-    io.to(requestBody.data.adviserTicket.ReceiverTicketId).emit(
-      "durationUpdated",
-      requestBody.data.studentTicket
-    );
+    console.log("Received duration update:", requestBody);
+    // Broadcast the updated ticket data to both rooms:
+    io.to(requestBody.data.adviserTicket._id).emit("durationUpdated", requestBody.data.adviserTicket);
+    io.to(requestBody.data.adviserTicket.ReceiverTicketId).emit("durationUpdated", requestBody.data.studentTicket);
   });
   // Handle disconnection
   socket.on("disconnect", () => {

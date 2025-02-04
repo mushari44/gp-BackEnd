@@ -56,5 +56,7 @@ def chatbot():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
- print("Starting Flask server...")
- app.run(debug=True)
+    print("Starting Flask server...")
+
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

@@ -4,7 +4,7 @@ const { route } = require("./auth");
 const axios = require("axios");
 const { log } = require("console");
 
-const createRouter = () => {
+const createRouter = (io) => {
   const router = express.Router();
   router.post("/chatbot", async (req, res) => {
     try {
@@ -84,8 +84,65 @@ const createRouter = () => {
       res.status(500).json({ message: "Server error" });
     }
   });
+// In your notifications route file (inside createRouter)
+router.put("/notifications", async (req, res) => {
+  const { receiverId, receiverType, message } = req.body;
 
-  // Route to post new messages to a ticket
+  try {
+    const Model = receiverType === "student" ? studentUser : adviserUser;
+    const updatedUser = await Model.findByIdAndUpdate(
+      receiverId,
+      {
+        $push: { "notifications.message": message },
+        $inc: { "notifications.newNotifications": 1 },
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    console.log(
+      `Notification added to ${updatedUser.username}:`,
+      updatedUser.notifications.message,
+      "New notifications:",
+      updatedUser.notifications.newNotifications
+    );
+
+    // Emit the update to the recipient's room (receiverId)
+    io.to(receiverId).emit("notificationUpdated", updatedUser.notifications);
+
+    res.status(200).json(updatedUser.notifications);
+  } catch (error) {
+    console.error("Error updating notifications:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+  router.put("/reset-notifications", async (req, res) => {
+    const { receiverId, receiverType } = req.body;
+  
+    try {
+      const Model = receiverType === "student" ? studentUser : adviserUser;
+  
+      const updatedUser = await Model.findByIdAndUpdate(
+        receiverId,
+        { $set: { "notifications.newNotifications": 0 } },
+        { new: true } 
+      );
+  
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+  
+      res.status(200).json({ message: "New notifications reset to 0" });
+    } catch (error) {
+      console.error("Error resetting notifications:", error);
+      res.status(500).json({ error: "Server error" });
+    }
+  });
   router.post("/messages/:ticketId", async (req, res) => {
     const { ticketId } = req.params;
     const { sender, senderName, content, ReceiverTicketId } = req.body;
@@ -139,7 +196,6 @@ const createRouter = () => {
       storedId,
       selectedHour,
       selectedMinute,
-      expectedDuration,
       course,
     } = req.body;
 
@@ -158,6 +214,8 @@ const createRouter = () => {
         .json({ message: "Bad request: Missing parameters!" });
     }
 
+   
+ 
     try {
       const [student, adviser] = await Promise.all([
         studentUser.findOneAndUpdate(
@@ -170,7 +228,6 @@ const createRouter = () => {
                 timeStamp,
                 date,
                 ReceiverId: adviserId,
-                Duration: expectedDuration,
                 Hour: selectedHour,
                 Minutes: selectedMinute,
                 confirmedDuration: false,
@@ -190,7 +247,6 @@ const createRouter = () => {
                 timeStamp,
                 date,
                 ReceiverId: studentId,
-                Duration: expectedDuration,
                 Hour: selectedHour,
                 Minutes: selectedMinute,
                 confirmedDuration: false,
@@ -215,6 +271,7 @@ const createRouter = () => {
         studentTicketId;
 
       await Promise.all([student.save(), adviser.save()]);
+
 
       // res.status(200).json({ student, adviser });
       res.status(200).json({
@@ -266,9 +323,10 @@ const createRouter = () => {
   });
 
   // Route to update the expected duration of a ticket
-  router.put("/user/expectedDuration", async (req, res) => {
+  router.put("/user/confirmDuration", async (req, res) => {
     const requestBody = req.body;
-
+    console.log("req body in update time: ", requestBody);
+    
     if (
       !requestBody.studentId ||
       !requestBody.adviserId ||
@@ -301,59 +359,19 @@ const createRouter = () => {
       const studentTicket = student.tickets.id(requestBody.ReceiverTicketId);
       const adviserTicket = adviser.tickets.id(requestBody.ticketId);
 
-      studentTicket.Duration = requestBody.newDuration;
       studentTicket.confirmedDuration = true;
 
-      adviserTicket.Duration = requestBody.newDuration;
       adviserTicket.confirmedDuration = true;
-
       // console.log("REQ : ", requestBody);
-      console.log("adivsre : ", adviser);
-
-      let hour = Number(requestBody.selectedHour);
-      let minute = Number(requestBody.selectedMinute);
-      let duration = Number(requestBody.newDuration);
       console.log("req body : ", requestBody);
-
-      const timeDocument = adviser.availableTimes;
-
-      while (duration > 0) {
-        // Calculate minutes to add in this hour
-        const minutesToAdd = Math.min(60 - minute, duration);
-
-        for (let i = 0; i < minutesToAdd; i++) {
-          const minuteStr = (minute + i).toString().padStart(2, "0");
-
-          if (hour === 10) {
-            // Check if the minute already exists in timeDocument.ten
-            const minuteExists = timeDocument.ten.some(
-              (entry) => entry === minuteStr
-            );
-            if (!minuteExists) {
-              timeDocument.ten.push(minuteStr);
-            }
-          } else if (hour === 11) {
-            // Check if the minute already exists in timeDocument.eleven
-            const minuteExists = timeDocument.eleven.some(
-              (entry) => entry === minuteStr
-            );
-            if (!minuteExists) {
-              timeDocument.eleven.push(minuteStr);
-            }
-          }
-        }
-
-        // Reduce the duration by the number of minutes we've added
-        duration -= minutesToAdd;
-
-        // Move to the next hour if necessary
-        hour += 1;
-        minute = 0; // Reset minute to 0 at the start of a new hour
-      }
-      adviser.availableTimes = timeDocument;
-
+      
+    adviser.bookedAppointments.push({
+      date: requestBody.ticketDate, 
+      start: requestBody.selectedHour, 
+      end: requestBody.endHour,                              
+      student: ""                        
+    });
       await Promise.all([student.save(), adviser.save()]);
-      console.log("time doc : ", timeDocument);
 
       res.status(200).json({ studentTicket, adviserTicket, adviser });
     } catch (error) {
@@ -361,11 +379,57 @@ const createRouter = () => {
       res.status(500).json({ message: "Server error" });
     }
   });
+
+  router.put("/user/updateTime", async (req, res) => {
+    const { startTime, duration, adviserTicketId, studentTicketId ,ticketDate,endHour} = req.body;
+  
+    if (!startTime || !duration || !adviserTicketId || !studentTicketId) {
+      return res.status(400).json({ message: "Missing parameters" });
+    }
+  
+    try {
+      const adviser = await adviserUser.findOne({ "tickets._id": adviserTicketId });
+      const student = await studentUser.findOne({ "tickets._id": studentTicketId });
+  
+      if (!adviser || !student) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+  
+      const adviserTicket = adviser.tickets.id(adviserTicketId);
+      const studentTicket = student.tickets.id(studentTicketId);
+  
+      if (!adviserTicket || !studentTicket) {
+        return res.status(404).json({ message: "Ticket not found in one or both users" });
+      }
+  
+      adviserTicket.Hour = startTime;
+      adviserTicket.Minutes = duration;
+      adviserTicket.confirmedDuration = true;
+  
+      studentTicket.Hour = startTime;
+      studentTicket.Minutes = duration;
+      studentTicket.confirmedDuration = true;
+      adviser.bookedAppointments.push({
+        date: ticketDate, 
+        start: startTime, 
+        end: endHour,                              
+        student: ""                        
+      });
+      await Promise.all([adviser.save(), student.save()]);
+  
+      io.to(adviserTicketId).emit("durationUpdated", adviserTicket);
+      io.to(studentTicketId).emit("durationUpdated", studentTicket);
+  
+      res.status(200).json({ adviserTicket, studentTicket });
+    } catch (error) {
+      console.error("Error updating time:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
 router.post("/user/officeHours", async (req, res) => {
     const { storedId, daysAndTimes } = req.body;
     console.log("days and times : ", daysAndTimes);
 
-    // Validate input: Ensure storedId is provided and daysAndTimes is a valid array
     if (!storedId || !daysAndTimes || !Array.isArray(daysAndTimes)) {
       return res.status(400).json({
         message: "Bad request: Missing or invalid parameters",
@@ -373,14 +437,12 @@ router.post("/user/officeHours", async (req, res) => {
     }
 
     try {
-      // Fetch the adviser by ID
       const adviser = await adviserUser.findOne({ _id: storedId });
       if (!adviser) {
         return res.status(404).json({ message: "Adviser not found" });
       }
       console.log(daysAndTimes);
 
-      // Ensure each day object has the required structure before processing
       const processedDays = daysAndTimes.map((day) => {
         console.log("day : ", day);
 
@@ -390,7 +452,7 @@ router.post("/user/officeHours", async (req, res) => {
           );
         }
 
-        const hoursArray = Array.isArray(day.hours) ? day.hours : [day.hours]; // Convert to array if it's an object
+        const hoursArray = Array.isArray(day.hours) ? day.hours : [day.hours];
 
         return {
           ...day,
@@ -403,16 +465,14 @@ router.post("/user/officeHours", async (req, res) => {
             return {
               start: hour.start,
               end: hour.end,
-              minutes: hour.minutes || [], // Ensure minutes is an array (default to empty)
+              minutes: hour.minutes || [], 
             };
           }),
         };
       });
 
-      // Update the adviser's office hours (availableTimes field)
       adviser.availableTimes = { Days: processedDays };
 
-      // Save changes to the database
       await adviser.save();
 
       res.status(200).json({
